@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse AI — Enter the System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070B14;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --border-glow: rgba(0,240,255,0.3);
+    --cyan: #00F0FF;
+    --magenta: #FF2D78;
+    --cyan-dim: rgba(0,240,255,0.12);
+    --magenta-dim: rgba(255,45,120,0.12);
+    --text: #E8EDF7;
+    --text-muted: rgba(232,237,247,0.45);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+
+  .bg-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-scene::before { content: ''; position: absolute; width: 700px; height: 700px; top: -200px; left: -150px; background: radial-gradient(circle, rgba(0,240,255,0.09) 0%, transparent 70%); animation: drift1 14s ease-in-out infinite alternate; }
+  .bg-scene::after { content: ''; position: absolute; width: 600px; height: 600px; bottom: -150px; right: -100px; background: radial-gradient(circle, rgba(255,45,120,0.09) 0%, transparent 70%); animation: drift2 18s ease-in-out infinite alternate; }
+  @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(60px,80px); } }
+  @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-50px,-60px); } }
+  .grid-lines { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px); background-size: 60px 60px; }
+
+  .stage { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+
+  .card { width: 100%; max-width: 480px; background: rgba(10,15,30,0.72); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid var(--border); border-radius: 24px; padding: 44px 40px; box-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,240,255,0.05) inset; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent); opacity: 0.5; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; justify-content: center; }
+  .logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--cyan), var(--magenta)); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,240,255,0.4); flex-shrink: 0; }
+  .logo-icon svg { width: 22px; height: 22px; }
+  .logo-wordmark { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(90deg, var(--cyan), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-tag { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; text-align: center; margin-top: -28px; margin-bottom: 32px; }
+
+  .pulse-bar { width: 100%; height: 28px; margin-bottom: 32px; display: flex; align-items: center; justify-content: center; }
+  .pulse-bar svg { width: 100%; height: 28px; }
+
+  .step-header { margin-bottom: 28px; }
+  .step-label { font-size: 11px; font-weight: 500; letter-spacing: 2.5px; text-transform: uppercase; color: var(--cyan); margin-bottom: 6px; }
+  .step-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .step-sub { margin-top: 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5; }
+
+  .field { margin-bottom: 18px; position: relative; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .input-wrap { position: relative; }
+  .input-wrap .ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .input-wrap .ico svg { width: 16px; height: 16px; }
+
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"], select { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 13px 14px 13px 40px; outline: none; transition: border-color .2s, box-shadow .2s, background .2s; -webkit-appearance: none; appearance: none; }
+  input[type="number"] { -moz-appearance: textfield; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  select { cursor: pointer; }
+  select option { background: #0d1526; color: var(--text); }
+  input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,240,255,0.1); background: rgba(0,240,255,0.04); }
+  input::placeholder { color: rgba(232,237,247,0.25); }
+
+  .row { display: grid; gap: 14px; }
+  .row.col2 { grid-template-columns: 1fr 1fr; }
+  .row.col3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .gender-group { display: flex; gap: 10px; }
+  .gender-btn { flex: 1; padding: 11px 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500; cursor: pointer; text-align: center; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .gender-btn:hover { border-color: rgba(0,240,255,0.3); color: var(--text); }
+  .gender-btn.sel { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px rgba(0,240,255,0.15); }
+
+  .unit-toggle { display: flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 10px; }
+  .unit-btn { flex: 1; padding: 9px; background: none; border: none; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; transition: all .2s; }
+  .unit-btn.sel { background: var(--cyan-dim); color: var(--cyan); }
+
+  .fitness-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .fitness-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 10px; cursor: pointer; text-align: center; transition: all .22s; position: relative; overflow: hidden; }
+  .fitness-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--cyan-dim), transparent); opacity: 0; transition: opacity .22s; }
+  .fitness-card:hover { border-color: rgba(0,240,255,0.25); }
+  .fitness-card.sel { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,240,255,0.15); }
+  .fitness-card.sel::before { opacity: 1; }
+  .fitness-card.mid.sel { border-color: #a78bfa; box-shadow: 0 0 16px rgba(167,139,250,0.2); }
+  .fitness-card.mid.sel::before { background: linear-gradient(135deg, rgba(167,139,250,0.12), transparent); }
+  .fitness-card.hard.sel { border-color: var(--magenta); box-shadow: 0 0 16px rgba(255,45,120,0.2); }
+  .fitness-card.hard.sel::before { background: linear-gradient(135deg, var(--magenta-dim), transparent); }
+  .fitness-card-icon { font-size: 22px; margin-bottom: 7px; }
+  .fitness-card-name { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 5px; }
+  .fitness-card.sel .fitness-card-name { color: var(--cyan); }
+  .fitness-card.mid.sel .fitness-card-name { color: #a78bfa; }
+  .fitness-card.hard.sel .fitness-card-name { color: var(--magenta); }
+  .fitness-card-sub { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; }
+
+  .btn-primary { width: 100%; padding: 14px; background: linear-gradient(90deg, var(--cyan), #5b9fff); border: none; border-radius: var(--radius-sm); color: #06090F; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 0 24px rgba(0,240,255,0.3); margin-top: 6px; position: relative; overflow: hidden; }
+  .btn-primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.15) 60%, transparent 70%); transform: translateX(-100%); transition: transform .5s; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 36px rgba(0,240,255,0.45); }
+  .btn-primary:hover::after { transform: translateX(200%); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-google { width: 100%; padding: 13px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background .2s, border-color .2s; margin-top: 12px; }
+  .btn-google:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.15); }
+  .btn-google svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--text-muted); font-size: 12px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .btn-back { background: none; border: none; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0; margin-bottom: 24px; transition: color .2s; }
+  .btn-back:hover { color: var(--cyan); }
+  .btn-back svg { width: 14px; height: 14px; }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 32px; }
+  .progress-dot { height: 3px; border-radius: 2px; background: var(--border); transition: all .3s; }
+  .progress-dot.done { background: var(--cyan); box-shadow: 0 0 6px rgba(0,240,255,0.5); }
+  .progress-dot.active { background: var(--cyan); width: 24px !important; box-shadow: 0 0 6px rgba(0,240,255,0.5); }
+
+  .sec-label { font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--magenta); margin: 24px 0 14px; display: flex; align-items: center; gap: 8px; }
+  .sec-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,45,120,0.2); }
+
+  .fade-up { opacity: 0; transform: translateY(20px); animation: fadeUp .5s ease forwards; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+  .d1 { animation-delay: .05s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .18s; }
+  .d4 { animation-delay: .24s; } .d5 { animation-delay: .30s; } .d6 { animation-delay: .36s; }
+  .d7 { animation-delay: .42s; } .d8 { animation-delay: .48s; }
+
+  .footer-note { margin-top: 20px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  .footer-note a { color: var(--cyan); text-decoration: none; }
+
+  .scroll-content { max-height: 75vh; overflow-y: auto; padding-right: 4px; }
+  .scroll-content::-webkit-scrollbar { width: 3px; }
+  .scroll-content::-webkit-scrollbar-track { background: transparent; }
+  .scroll-content::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.3); border-radius: 2px; }
+
+  /* Loading overlay */
+  .loading-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(7,11,20,0.92); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px; backdrop-filter: blur(8px); }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border: 3px solid rgba(0,240,255,0.15); border-top-color: var(--cyan); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'Syne', sans-serif; font-size: 16px; color: var(--cyan); letter-spacing: 1px; }
+
+  /* Error toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(255,45,120,0.15); border: 1px solid var(--magenta); border-radius: 12px; padding: 14px 24px; color: var(--magenta); font-size: 14px; z-index: 200; display: none; }
+  .toast.show { display: block; animation: fadeUp .3s ease; }
+
+  @media (max-width: 500px) {
+    .card { padding: 32px 22px; border-radius: 20px; }
+    .fitness-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .fitness-card { padding: 12px 6px; }
+    .fitness-card-icon { font-size: 18px; }
+    .fitness-card-name { font-size: 10px; }
+    .fitness-card-sub { display: none; }
+  }
+  @media (max-width: 360px) {
+    .row.col2 { grid-template-columns: 1fr; }
+    .fitness-grid { grid-template-columns: 1fr; }
+    .gender-group { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Initialising AI Agent...</div>
+</div>
+
+<!-- Error toast -->
+<div class="toast" id="toast"></div>
+
+<div class="bg-scene"></div>
+<div class="grid-lines"></div>
+
+<div class="stage">
+  <div class="card">
+
+    <!-- ══ STEP 1: AUTH ══ -->
+    <div class="screen active" id="step1">
+      <div class="logo fade-up d1">
+        <div class="logo-icon">
+          <svg viewBox="0 0 22 22" fill="none">
+            <path d="M2 11h3l2-6 3 12 3-9 2 5 2-2h3" stroke="#06090F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="logo-wordmark">Pulse AI</span>
+      </div>
+      <p class="logo-tag fade-up d2">Agentic Fitness Intelligence</p>
+
+      <div class="pulse-bar fade-up d2">
+        <svg viewBox="0 0 440 28" fill="none">
+          <path d="M0 14 H100 L110 4 L120 24 L130 10 L140 18 L150 14 H175 L185 2 L197 26 L208 8 L218 20 L226 14 H440" stroke="url(#pg)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="185" cy="2" r="3" fill="#FF2D78" opacity="0.8">
+            <animate attributeName="opacity" values="0.8;0.1;0.8" dur="2s" repeatCount="indefinite"/>
+          </circle>
+          <defs>
+            <linearGradient id="pg" x1="0" y1="0" x2="440" y2="0">
+              <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.1"/>
+              <stop offset="40%" stop-color="#00F0FF" stop-opacity="0.9"/>
+              <stop offset="55%" stop-color="#FF2D78" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#FF2D78" stop-opacity="0.1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="step-header fade-up d3">
+        <div class="step-label">Authentication Gateway</div>
+        <div class="step-title">Enter the System</div>
+        <div class="step-sub">Your AI-powered performance coach awaits.</div>
+      </div>
+
+      <div class="field fade-up d4">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <span class="ico"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.3"/></svg></span>
+          <input type="email" id="email" placeholder="you@example.com">
+        </div>
+      </div>
+
+      <div class="field fade-up d5">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="ico"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="10.5" r="1" fill="currentColor"/></svg></span>
+          <input type="password" id="pass" placeholder="••••••••••">
+        </div>
+      </div>
+
+      <button class="btn-primary fade-up d6" onclick="goStep2()">⚡ Enter the System</button>
+
+      <div class="divider fade-up d7">or continue with</div>
+
+      <button class="btn-google fade-up d7" onclick="goStep2()">
+        <svg viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+        Sign in with Google
+      </button>
+      <p class="footer-note fade-up d8">No account? <a href="#" onclick="goStep2(); return false;">Create one free →</a></p>
+    </div>
+
+    <!-- ══ STEP 2: CALIBRATION ══ -->
+    <div class="screen" id="step2">
+      <button class="btn-back" onclick="goStep1()">
+        <svg viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </button>
+
+      <div class="progress">
+        <div class="progress-dot done" style="width:10px"></div>
+        <div class="progress-dot active" style="width:10px"></div>
+        <div class="progress-dot" style="width:10px"></div>
+      </div>
+
+      <div class="step-header fade-up d1">
+        <div class="step-label">Calibration Sequence</div>
+        <div class="step-title">Calibrating your AI Agent...</div>
+        <div class="step-sub">Help us build your personalized performance engine.</div>
+      </div>
+
+      <div class="scroll-content">
+        <div class="sec-label fade-up d2">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 12c0-3.038 2.462-5.5 5.5-5.5S12 8.962 12 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Basic Profile
+        </div>
+
+        <div class="field fade-up d2">
+          <label>Full Name</label>
+          <div class="input-wrap">
+            <span class="ico"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+            <input type="text" id="fullname" placeholder="Alex Mercer">
+          </div>
+        </div>
+
+        <div class="field fade-up d3">
+          <label>Gender</label>
+          <div class="gender-group">
+            <button class="gender-btn sel" id="g-male"   onclick="selGender(this,'male')">♂ Male</button>
+            <button class="gender-btn"     id="g-female" onclick="selGender(this,'female')">♀ Female</button>
+            <button class="gender-btn"     id="g-other"  onclick="selGender(this,'other')">⚬ Other</button>
+          </div>
+        </div>
+
+        <div class="sec-label fade-up d3">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="6.5" r="3" stroke="currentColor" stroke-width="1.2"/></svg>
+          Biometrics
+        </div>
+
+        <div class="row col2 fade-up d4">
+          <div class="field">
+            <label>Age</label>
+            <div class="input-wrap">
+              <span class="ico"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 1v4M11 1v4M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+              <input type="number" id="age" placeholder="24" min="10" max="100">
+            </div>
+          </div>
+          <div>
+            <div class="unit-toggle">
+              <button class="unit-btn sel" id="h-cm"  onclick="selUnit(this,'h-cm','h-ft','height')">cm</button>
+              <button class="unit-btn"     id="h-ft"  onclick="selUnit(this,'h-ft','h-cm','height')">ft</button>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label id="height-label">Height (cm)</label>
+              <div class="input-wrap">
+                <span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2v12M5 4h2M5 8h4M5 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                <input type="number" id="height" placeholder="175" min="100" max="250">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field fade-up d5">
+          <div class="unit-toggle" style="max-width:120px">
+            <button class="unit-btn sel" id="w-kg"  onclick="selUnit(this,'w-kg','w-lbs','weight')">kg</button>
+            <button class="unit-btn"     id="w-lbs" onclick="selUnit(this,'w-lbs','w-kg','weight')">lbs</button>
+          </div>
+          <label id="weight-label">Weight (kg)</label>
+          <div class="input-wrap">
+            <span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M5 5h6l1 8H4L5 5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M6 5c0-1.105.895-2 2-2s2 .895 2 2" stroke="currentColor" stroke-width="1.3"/></svg></span>
+            <input type="number" id="weight" placeholder="72" min="30" max="300">
+          </div>
+        </div>
+
+        <div class="sec-label fade-up d5">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 10l3-4 3 2 3-5 2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Experience Level
+        </div>
+
+        <div class="fitness-grid fade-up d6">
+          <div class="fitness-card sel" onclick="selFit(this,'beginner')">
+            <div class="fitness-card-icon">🌱</div>
+            <div class="fitness-card-name">Beginner</div>
+            <div class="fitness-card-sub">New to training, 1–2×/week</div>
+          </div>
+          <div class="fitness-card mid" onclick="selFit(this,'intermediate')">
+            <div class="fitness-card-icon">⚡</div>
+            <div class="fitness-card-name">Intermediate</div>
+            <div class="fitness-card-sub">3–4 days/week, consistent</div>
+          </div>
+          <div class="fitness-card hard" onclick="selFit(this,'advanced')">
+            <div class="fitness-card-icon">🔥</div>
+            <div class="fitness-card-name">Advanced</div>
+            <div class="fitness-card-sub">5+ days, performance-driven</div>
+          </div>
+        </div>
+
+        <button class="btn-primary fade-up d7" style="margin-top:28px" id="launchBtn" onclick="handleLaunch()">
+          🚀 Initialise My AI Agent
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let state = {
+    gender: 'male',
+    activityLevel: 'beginner',
+    heightUnit: 'cm',
+    weightUnit: 'kg',
+  };
+
+  // ── Streamlit dashboard URL — change port if needed ────────────────────────
+  const DASHBOARD_URL = 'http://localhost:8501';
+
+  // ── Step navigation ────────────────────────────────────────────────────────
+  function goStep2() {
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step2').classList.add('active');
+    triggerAnim('step2');
+  }
+  function goStep1() {
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step1').classList.add('active');
+    triggerAnim('step1');
+  }
+  function triggerAnim(id) {
+    const els = document.querySelectorAll('#' + id + ' .fade-up');
+    els.forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+  }
+
+  // ── UI selectors ───────────────────────────────────────────────────────────
+  function selGender(btn, val) {
+    document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    state.gender = val;
+  }
+  function selFit(card, val) {
+    document.querySelectorAll('.fitness-card').forEach(c => c.classList.remove('sel'));
+    card.classList.add('sel');
+    state.activityLevel = val;
+  }
+  function selUnit(btn, onId, offId, type) {
+    document.getElementById(onId).classList.add('sel');
+    document.getElementById(offId).classList.remove('sel');
+    if (type === 'height') {
+      state.heightUnit = onId === 'h-cm' ? 'cm' : 'ft';
+      document.getElementById('height-label').textContent = state.heightUnit === 'cm' ? 'Height (cm)' : 'Height (ft)';
+      document.getElementById('height').placeholder = state.heightUnit === 'cm' ? '175' : '5.9';
+    } else {
+      state.weightUnit = onId === 'w-kg' ? 'kg' : 'lbs';
+      document.getElementById('weight-label').textContent = state.weightUnit === 'kg' ? 'Weight (kg)' : 'Weight (lbs)';
+      document.getElementById('weight').placeholder = state.weightUnit === 'kg' ? '72' : '158';
+    }
+  }
+
+  // ── Toast helper ──────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = '⚠️ ' + msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── Main: collect → validate → redirect to Streamlit ─────────────────────
+  function handleLaunch() {
+    const age    = parseInt(document.getElementById('age').value);
+    const heightRaw = parseFloat(document.getElementById('height').value);
+    const weightRaw = parseFloat(document.getElementById('weight').value);
+
+    // Basic validation
+    if (!age || age < 1 || age > 120)     { showToast('Please enter a valid age (1–120).'); return; }
+    if (!heightRaw || heightRaw <= 0)     { showToast('Please enter your height.'); return; }
+    if (!weightRaw || weightRaw <= 0)     { showToast('Please enter your weight.'); return; }
+
+    // Convert units → metric (kg / cm) before sending
+    const weight_kg  = state.weightUnit === 'lbs' ? +(weightRaw * 0.453592).toFixed(1) : weightRaw;
+    const height_cm  = state.heightUnit === 'ft'  ? +(heightRaw * 30.48).toFixed(1)    : heightRaw;
+
+    // Show loading
+    document.getElementById('loadingOverlay').classList.add('show');
+    document.getElementById('launchBtn').disabled = true;
+
+    // Build query string
+    const params = new URLSearchParams({
+      age:            age,
+      gender:         state.gender,
+      weight_kg:      weight_kg,
+      height_cm:      height_cm,
+      activity_level: state.activityLevel,
+    });
+
+    // Option A: redirect straight to Streamlit with params in URL
+    // (Streamlit reads st.query_params automatically)
+    setTimeout(() => {
+      window.location.href = `${DASHBOARD_URL}?${params.toString()}`;
+    }, 1200); // short delay so loading animation is visible
+  }
+</script>
+</body>
+</html>
